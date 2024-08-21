@@ -46,11 +46,8 @@ namespace webAPI.DataBase
 
         public void Crear(Empleado obj)
         {
-            
             obj.FechaAlta = DateTime.Now;
-
             Conectar();
-
             try
             {
                 string query = "INSERT INTO Empleado (rol, nombre, baja, clave, fecha_alta, fecha_baja) " +
@@ -76,12 +73,47 @@ namespace webAPI.DataBase
             }
         }
 
-
-
-
         public void Modificar(Empleado obj) { }
 
-        public void Borrar(Empleado obj) { }
+        public void Borrar(Empleado obj)
+        {
+            Conectar();
+            try
+            {
+                // First, check if the employee is already deleted
+                string checkQuery = "SELECT baja FROM Empleado WHERE id = @Id";
+                SqlCommand checkCommand = new SqlCommand(checkQuery, _connection);
+                checkCommand.Parameters.AddWithValue("@Id", obj.Id);
+
+                bool isAlreadyDeleted = Convert.ToBoolean(checkCommand.ExecuteScalar());
+
+                if (isAlreadyDeleted)
+                {
+                    Console.WriteLine($"Empleado con ID {obj.Id} ya está eliminado.");
+                    return; // Exit the method if the employee is already deleted
+                }
+
+                // Proceed with soft deletion if not already deleted
+                obj.Baja = true;
+                obj.FechaBaja = DateTime.Now;
+
+                string query = "UPDATE Empleado SET baja = @Baja, fecha_baja = @FechaBaja WHERE id = @Id";
+                SqlCommand command = new SqlCommand(query, _connection);
+                command.Parameters.AddWithValue("@Baja", obj.Baja);
+                command.Parameters.AddWithValue("@FechaBaja", obj.FechaBaja.HasValue ? (object)obj.FechaBaja.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@Id", obj.Id);
+
+                command.ExecuteNonQuery();
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine($"Error al borrar empleado: {ex.Message}");
+            }
+            finally
+            {
+                Desconectar();
+            }
+        }
 
         public Empleado ObtenerPorId(int id)
         {

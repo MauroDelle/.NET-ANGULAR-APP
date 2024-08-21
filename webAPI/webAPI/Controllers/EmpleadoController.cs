@@ -55,5 +55,30 @@ namespace webAPI.Controllers
                 return StatusCode(500, "Error interno del servidor");
             }
         }
+
+
+        [HttpDelete("{id}")]
+        public IActionResult Borrar(int id)
+        {
+            // Retrieve the employee to check if it exists and is already deleted
+            var empleado = _empleadoDataBase.ObtenerPorId(id);
+
+            if (empleado == null)
+            {
+                return NotFound(new { message = "Empleado no encontrado" });
+            }
+
+            if (empleado.Baja)
+            {
+                return BadRequest(new { message = "Empleado ya ha sido eliminado" });
+            }
+
+            // Proceed with deletion
+            _empleadoDataBase.Borrar(empleado);
+            return Ok(new { message = "Empleado eliminado con éxito" });
+        }
+
+
+
     }
 }
